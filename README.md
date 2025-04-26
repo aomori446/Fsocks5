@@ -1,7 +1,5 @@
 # Fangks
 
-***
-
 A socks5 server
 
 ## Feature
