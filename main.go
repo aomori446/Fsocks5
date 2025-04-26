@@ -11,6 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer listener.Close()
 
 	for {
@@ -20,7 +21,11 @@ func main() {
 			continue
 		}
 
-		go withTcpConn(tcpConn)
+		go func(){
+			if err := withTcpConn(tcpConn); err != nil {
+				log.Println(err)
+			}
+		}()
 	}
 }
 
