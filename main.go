@@ -21,7 +21,7 @@ func main() {
 			continue
 		}
 
-		go func(){
+		go func() {
 			if err := withTcpConn(tcpConn); err != nil {
 				log.Println(err)
 			}
