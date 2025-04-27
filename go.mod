@@ -1,1 +1,1 @@
-module Socks5Fy
+module Fsocks5
