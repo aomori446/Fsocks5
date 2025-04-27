@@ -1,4 +1,4 @@
-package main
+package Fsocks5
 
 import (
 	"fmt"

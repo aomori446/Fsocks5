@@ -1,4 +1,4 @@
-package main
+package Fsocks5
 
 import (
 	"errors"
@@ -40,12 +40,21 @@ func Auth(rw io.ReadWriter) error {
 	}
 }
 
-func reply(w io.Writer, message []byte) error {
-	_, err := w.Write(message)
-	if err != nil {
-		return fmt.Errorf("failed to write response: %w", err)
+func subNegotiate(rw io.ReadWriter, ms []byte) error {
+	// Select appropriate authentication method
+	for _, method := range ms {
+		if authFunc, ok := authMethods[method]; ok {
+			return authFunc(rw)
+		}
 	}
-	return nil
+	// If no supported method is found, reject with NoAccept
+	return reply(rw, []byte{0x05, NoAccept})
+}
+
+var authMethods = map[byte]func(io.ReadWriter) error{
+	NoAuth:  authNoAuth,
+	GSSAPI:  authGSSAPI,
+	NamePwd: authNamePwd,
 }
 
 func authNoAuth(rw io.ReadWriter) error {
@@ -88,7 +97,7 @@ func authNamePwd(rw io.ReadWriter) error {
 		default:
 			read, err = readN(rw, read[len(read)-1])
 			password = string(read)
-			if HasUser(username, password) {
+			if hasUser(username, password) {
 				return reply(rw, []byte{0x01, 0x00})
 			}
 			return reply(rw, []byte{0x01, 0xFF})
@@ -96,19 +105,18 @@ func authNamePwd(rw io.ReadWriter) error {
 	}
 }
 
-var authMethods = map[byte]func(io.ReadWriter) error{
-	NoAuth:  authNoAuth,
-	GSSAPI:  authGSSAPI,
-	NamePwd: authNamePwd,
+func reply(w io.Writer, message []byte) error {
+	_, err := w.Write(message)
+	if err != nil {
+		return fmt.Errorf("failed to write response: %w", err)
+	}
+	return nil
 }
 
-func subNegotiate(rw io.ReadWriter, ms []byte) error {
-	// Select appropriate authentication method
-	for _, method := range ms {
-		if authFunc, ok := authMethods[method]; ok {
-			return authFunc(rw)
-		}
+func hasUser(username string, password string) bool {
+	// TODO check database
+	if username == "admin" && password == "password" {
+		return true
 	}
-	// If no supported method is found, reject with NoAccept
-	return reply(rw, []byte{0x05, NoAccept})
+	return false
 }
