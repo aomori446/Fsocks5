@@ -45,12 +45,10 @@ func (s *Server) ListenAndServe(address string) error {
 	s.config.Logger.Info("start listening", "addr", addr.String())
 	defer s.config.Logger.Info("stop listening", "addr", addr.String())
 
-	s.Serve(listener)
-
-	return nil
+	return s.Serve(listener)
 }
 
-func (s *Server) Serve(listener *net.TCPListener) {
+func (s *Server) Serve(listener *net.TCPListener) error {
 	for {
 		tcpConn, err := listener.AcceptTCP()
 		if err != nil {
