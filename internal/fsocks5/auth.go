@@ -1,14 +1,7 @@
-package Fsocks5
+package fsocks5
 
 import (
-	"errors"
-	"fmt"
 	"io"
-)
-
-var (
-	FormatErr  = errors.New("format is wrong")
-	VersionErr = errors.New("unsupported SOCKS version")
 )
 
 var (
@@ -36,12 +29,11 @@ func Auth(rw io.ReadWriter) error {
 		if err != nil {
 			return FormatErr
 		}
-		return subNegotiate(rw, read)
+		return auth(rw, read)
 	}
 }
 
-func subNegotiate(rw io.ReadWriter, ms []byte) error {
-	// Select appropriate authentication method
+func auth(rw io.ReadWriter, ms []byte) error {
 	for _, method := range ms {
 		if authFunc, ok := authMethods[method]; ok {
 			return authFunc(rw)
@@ -103,14 +95,6 @@ func authNamePwd(rw io.ReadWriter) error {
 			return reply(rw, []byte{0x01, 0xFF})
 		}
 	}
-}
-
-func reply(w io.Writer, message []byte) error {
-	_, err := w.Write(message)
-	if err != nil {
-		return fmt.Errorf("failed to write response: %w", err)
-	}
-	return nil
 }
 
 func hasUser(username string, password string) bool {

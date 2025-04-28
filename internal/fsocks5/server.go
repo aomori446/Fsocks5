@@ -1,6 +1,7 @@
-package Fsocks5
+package fsocks5
 
 import (
+	"errors"
 	"log/slog"
 	"net"
 	"os"
@@ -82,4 +83,19 @@ func (s *Server) ServeConn(conn *net.TCPConn) error {
 	}
 
 	return s.handleRequest(req, conn)
+}
+
+func (s *Server) handleRequest(r *Request, conn net.Conn) error {
+	s.config.Logger.Info("handling request", "cmd", r.cmd)
+	switch r.cmd {
+	case 0x01:
+		return r.serveConnect(s, conn)
+	case 0x02:
+		return r.serveBind()
+	case 0x03:
+		return r.serveUDPAssociate(s, conn)
+	default:
+		s.config.Logger.Error("unsupported command", "cmd", r.cmd)
+		return errors.New("unsupported command")
+	}
 }
