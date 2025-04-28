@@ -56,3 +56,33 @@ func reply(w io.Writer, message []byte) error {
 	}
 	return nil
 }
+
+func readAddress(r io.Reader, n byte) (Address, error) {
+	switch n {
+	case 4 + 2: // IPv4
+		read, err := readN(r, n)
+		if err != nil {
+			return nil, err
+		}
+		return IPAddr{Ip: read[:4], Port: read[4:]}, nil
+
+	case 16 + 2: // IPv6
+		read, err := readN(r, n)
+		if err != nil {
+			return nil, err
+		}
+		return IPAddr{Ip: read[:16], Port: read[16:]}, nil
+
+	default: // Domain
+		read, err := readN(r, 1)
+		if err != nil {
+			return nil, err
+		}
+		addrLen := read[0]
+		read, err = readN(r, addrLen+2)
+		if err != nil {
+			return nil, err
+		}
+		return NewDomainNameAddr(read), nil
+	}
+}

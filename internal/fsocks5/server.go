@@ -31,7 +31,12 @@ func NewServer(config *Config) *Server {
 	}
 }
 
-func (s *Server) ListenAndServe(addr *net.TCPAddr) error {
+func (s *Server) ListenAndServe(address string) error {
+	addr, err := net.ResolveTCPAddr("tcp", address)
+	if err != nil {
+		return err
+	}
+
 	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		return err
@@ -49,7 +54,6 @@ func (s *Server) Serve(listener *net.TCPListener) {
 	for {
 		tcpConn, err := listener.AcceptTCP()
 		if err != nil {
-			s.config.Logger.Error("connect failed", "remoteAddr", tcpConn.RemoteAddr().String())
 			continue
 		}
 
@@ -60,9 +64,8 @@ func (s *Server) Serve(listener *net.TCPListener) {
 				remoteAddr := conn.RemoteAddr().String()
 				s.config.Logger.Error("disconnect from", "remoteAddr", remoteAddr, "err", err)
 
-				if closeErr := conn.Close(); closeErr != nil {
-					s.config.Logger.Error("unable to close conn", "remoteAddr", remoteAddr, "err", closeErr)
-				}
+				//only close client connection here.
+				_ = conn.Close()
 			}
 		}(tcpConn)
 	}
@@ -77,7 +80,7 @@ func (s *Server) ServeConn(conn *net.TCPConn) error {
 		return err
 	}
 
-	req, err := NewRequest(conn, s.config.Logger)
+	req, err := NewRequest(conn)
 	if err != nil {
 		return err
 	}
@@ -86,16 +89,14 @@ func (s *Server) ServeConn(conn *net.TCPConn) error {
 }
 
 func (s *Server) handleRequest(r *Request, conn net.Conn) error {
-	s.config.Logger.Info("handling request", "cmd", r.cmd)
 	switch r.cmd {
 	case 0x01:
-		return r.serveConnect(s, conn)
+		return serveConnect(r, conn)
 	case 0x02:
-		return r.serveBind()
+		return r.serveBind(s, conn)
 	case 0x03:
 		return r.serveUDPAssociate(s, conn)
 	default:
-		s.config.Logger.Error("unsupported command", "cmd", r.cmd)
 		return errors.New("unsupported command")
 	}
 }

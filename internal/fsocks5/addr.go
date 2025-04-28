@@ -24,11 +24,7 @@ func NewIPAddr(hostPort string) (*IPAddr, error) {
 		return nil, err
 	}
 
-	return &IPAddr{
-		Ip:   ip,
-		Port: port,
-		ATYP: atyp,
-	}, nil
+	return &IPAddr{Ip: ip, Port: port, ATYP: atyp}, nil
 }
 
 func (i IPAddr) ToString() string {
@@ -45,7 +41,7 @@ func (i IPAddr) GetATYP() byte {
 }
 
 type DomainNameAddr struct {
-	Domain []byte
+	Domain []byte //without prefix length
 	Port   []byte
 	ATYP   byte
 }
@@ -63,6 +59,7 @@ func (d DomainNameAddr) ToString() string {
 	return net.JoinHostPort(string(d.Domain), strconv.Itoa(int(port)))
 }
 
+// ToSlice with prefix length
 func (d DomainNameAddr) ToSlice() []byte {
 	return append([]byte{byte(len(d.Domain))}, append(d.Domain, d.Port...)...)
 }

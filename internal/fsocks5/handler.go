@@ -4,61 +4,42 @@ import (
 	"context"
 	"io"
 	"net"
+	"sync"
 )
 
-func (r *Request) serveConnect(s *Server, conn1 net.Conn) error {
-	conn2, err := net.Dial("tcp", r.address.ToString())
+func serveConnect(r *Request, clientConn net.Conn) (err error) {
+	remoteConn, err := net.Dial("tcp", r.addr.ToString())
 	if err != nil {
-		s.config.Logger.Error("failed to connect to target", "target", r.address.ToString(), "err", err)
-		resp := &Response{
-			rep: hostUnreachable,
-			address: IPAddr{
-				Ip:   net.IPv4zero,
-				Port: []byte{0x00, 0x00},
-			},
-		}
-		_ = reply(conn1, resp.bytes())
-		return err
+		_ = reply(clientConn, UnreachableResponse.bytes())
+		return
 	}
+	// only close remote connection here.
+	defer remoteConn.Close()
 
-	ipAddr, err := NewIPAddr(conn2.LocalAddr().String())
+	resp, err := NewResponse(succeeded, remoteConn.LocalAddr().String())
 	if err != nil {
-		s.config.Logger.Error("failed to get local address", "err", err)
-		conn2.Close()
-		return err
+		return
 	}
+	_ = reply(clientConn, resp.bytes())
 
-	resp := &Response{rep: succeeded, address: ipAddr}
-	if err := reply(conn1, resp.bytes()); err != nil {
-		s.config.Logger.Error("failed to reply success to client", "err", err)
-		conn2.Close()
-		return err
-	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 
-	s.config.Logger.Info("proxying connection", "client", conn1.RemoteAddr().String(), "target", r.address.ToString())
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_, err = io.Copy(clientConn, remoteConn)
+	}(wg)
 
-	go func() {
-		defer conn1.Close()
-		defer conn2.Close()
-		_, err := io.Copy(conn1, conn2)
-		if err != nil {
-			s.config.Logger.Warn("error copying from target to client", "err", err)
-		}
-	}()
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_, err = io.Copy(remoteConn, clientConn)
+	}(wg)
 
-	go func() {
-		defer conn1.Close()
-		defer conn2.Close()
-		_, err := io.Copy(conn2, conn1)
-		if err != nil {
-			s.config.Logger.Warn("error copying from client to target", "err", err)
-		}
-	}()
-
-	return nil
+	wg.Wait()
+	return
 }
 
-func (r *Request) serveBind() error {
+func (r *Request) serveBind(s *Server, conn1 net.Conn) error {
 	panic("TODO: serveBind()")
 }
 
@@ -74,7 +55,7 @@ func (r *Request) serveUDPAssociate(s *Server, conn1 net.Conn) error {
 
 	ipAddr, err := NewIPAddr(udpConn.LocalAddr().String())
 	if err != nil {
-		s.config.Logger.Error("failed to get local address", "err", err)
+		s.config.Logger.Error("failed to get local addr", "err", err)
 		udpConn.Close()
 		return err
 	}
