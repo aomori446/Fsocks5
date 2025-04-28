@@ -1,11 +1,5 @@
 package fsocks5
 
-import (
-	"Fsocks5"
-	"errors"
-	"net"
-)
-
 /*
 +----+------+------+----------+----------+----------+
 |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |  DATA    |
@@ -15,11 +9,11 @@ import (
 */
 
 type Datagram struct {
-	Address Fsocks5.Address
+	Address Address
 	Data    []byte
 }
 
-func ReadOneDatagram(conn *net.UDPConn) (*Datagram, error) {
+/*func ReadOneDatagram(conn *net.UDPConn) (*Datagram, error) {
 	buf := make([]byte, 65536)
 	n, clientAddr, err := conn.ReadFrom(buf)
 	if err != nil {
@@ -39,4 +33,6 @@ func ReadOneDatagram(conn *net.UDPConn) (*Datagram, error) {
 	case 0x01:
 
 	}
-}
+
+
+}*/
