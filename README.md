@@ -6,6 +6,14 @@ A socks5 server
 * Support TCP and IPv4/IPv6
 * Support for the CONNECT command
 
+## Useage
+```go
+func main() {
+	server := fsocks5.NewServer(nil)
+	log.Fatal(server.ListenAndServe(":9999"))
+}
+```
+
 ## TODO
 
 * Support for UDP
