@@ -23,7 +23,7 @@ func readN(r io.Reader, n byte) ([]byte, error) {
 }
 
 func parseHostPort(hostPort string) (IP []byte, Port []byte, ATYP byte, err error) {
-	host, port, err := net.SplitHostPort(hostPort)
+	host, p, err := net.SplitHostPort(hostPort)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -40,10 +40,11 @@ func parseHostPort(hostPort string) (IP []byte, Port []byte, ATYP byte, err erro
 		ATYP = 0x04
 	}
 
-	pp, err := strconv.Atoi(port)
+	pp, err := strconv.Atoi(p)
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	Port = make([]byte, 2)
 	binary.BigEndian.PutUint16(Port, uint16(pp))
 
 	return

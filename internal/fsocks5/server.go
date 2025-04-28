@@ -57,7 +57,7 @@ func (s *Server) Serve(listener *net.TCPListener) {
 			continue
 		}
 
-		s.config.Logger.Info("new connection", "remoteAddr", tcpConn.RemoteAddr().String())
+		s.config.Logger.Info("new connection", "clientAddr", tcpConn.RemoteAddr().String())
 
 		go func(conn *net.TCPConn) {
 			if err := s.ServeConn(conn); err != nil {

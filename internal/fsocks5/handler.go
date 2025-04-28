@@ -30,6 +30,7 @@ func serveConnect(r *Request, clientConn net.Conn) (err error) {
 		_, err = io.Copy(clientConn, remoteConn)
 	}(wg)
 
+	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		_, err = io.Copy(remoteConn, clientConn)
