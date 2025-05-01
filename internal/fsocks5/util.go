@@ -57,39 +57,3 @@ func reply(w io.Writer, message []byte) error {
 	}
 	return nil
 }
-
-func setRequestAddress(r io.Reader, req *Request) error {
-	switch req.atyp {
-	case 0x01: // IPv4
-		read, err := readN(r, 4+2)
-		if err != nil {
-			return err
-		}
-		req.addr = IPAddr{Ip: read[:4], Port: read[4:]}
-		return nil
-
-	case 0x03: // Domain
-		read, err := readN(r, 1)
-		if err != nil {
-			return err
-		}
-		addrLen := read[0]
-		read, err = readN(r, addrLen+2)
-		if err != nil {
-			return err
-		}
-		req.addr = NewDomainNameAddr(read)
-		return nil
-
-	case 0x04: // IPv6
-		read, err := readN(r, 16+2)
-		if err != nil {
-			return err
-		}
-		req.addr = IPAddr{Ip: read[:16], Port: read[16:]}
-		return nil
-
-	default:
-		return errors.New("unsupported addr type")
-	}
-}

@@ -14,12 +14,22 @@ const (
 	addressTypeNotSupported            = 0x08
 )
 
-var UnreachableResponse = Response{
-	rep: hostUnreachable,
-	address: IPAddr{
-		Ip:   net.IPv4zero,
-		Port: []byte{0x00, 0x00},
-	},
+var failedResponseWithReason = func(reason byte) *Response {
+	return &Response{
+		rep: reason,
+		address: IPAddr{
+			ip:   net.IPv4zero,
+			port: []byte{0x00, 0x00},
+		},
+	}
+}
+
+var SucceededResponse = func(hostPort string) *Response {
+	ipAddr, _ := NewIPAddr(hostPort)
+	return &Response{
+		rep:     succeeded,
+		address: ipAddr,
+	}
 }
 
 type Response struct {
@@ -27,18 +37,6 @@ type Response struct {
 	address Address
 }
 
-func NewResponse(rep byte, hostPort string) (*Response, error) {
-	ipAddr, err := NewIPAddr(hostPort)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Response{
-		rep:     rep,
-		address: ipAddr,
-	}, nil
-}
-
 func (r *Response) bytes() []byte {
-	return append([]byte{0x05, r.rep, 0x00, r.address.GetATYP()}, r.address.ToSlice()...)
+	return append([]byte{0x05, r.rep, 0x00, r.address.Atyp()}, r.address.Bytes()...)
 }

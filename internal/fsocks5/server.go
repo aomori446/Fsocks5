@@ -1,36 +1,19 @@
 package fsocks5
 
 import (
-	"errors"
 	"log/slog"
 	"net"
-	"os"
 	"time"
 )
 
-type Config struct {
-	Logger *slog.Logger
+type Server struct{}
+
+// NewServer Create a new server instance with optional logging configuration
+func NewServer() *Server {
+	return &Server{}
 }
 
-type Server struct {
-	config *Config
-}
-
-func NewServer(config *Config) *Server {
-	if config == nil {
-		config = &Config{}
-	}
-	if config.Logger == nil {
-		config.Logger = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
-		)
-	}
-
-	return &Server{
-		config: config,
-	}
-}
-
+// ListenAndServe Start listening on the given TCP address
 func (s *Server) ListenAndServe(address string) error {
 	addr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
@@ -41,35 +24,37 @@ func (s *Server) ListenAndServe(address string) error {
 	if err != nil {
 		return err
 	}
+	defer listener.Close()
 
-	s.config.Logger.Info("start listening", "addr", addr.String())
-	defer s.config.Logger.Info("stop listening", "addr", addr.String())
+	slog.Info("Start listening", "addr", addr.String())
+	defer slog.Info("Stop listening", "addr", addr.String())
 
-	return s.Serve(listener)
+	return s.serve(listener)
 }
 
-func (s *Server) Serve(listener *net.TCPListener) error {
+// Accept and handle incoming TCP connections
+func (s *Server) serve(listener *net.TCPListener) error {
 	for {
 		tcpConn, err := listener.AcceptTCP()
 		if err != nil {
+			slog.Warn("Failed to accept connection", "err", err)
 			continue
 		}
 
-		s.config.Logger.Info("new connection", "clientAddr", tcpConn.RemoteAddr().String())
+		slog.Debug("New connection", "clientAddr", tcpConn.RemoteAddr().String())
 
 		go func(conn *net.TCPConn) {
-			if err := s.ServeConn(conn); err != nil {
-				remoteAddr := conn.RemoteAddr().String()
-				s.config.Logger.Error("disconnect from", "remoteAddr", remoteAddr, "err", err)
+			defer conn.Close() // Always close client connection at the end
 
-				//only close client connection here.
-				_ = conn.Close()
+			if err := s.serveConn(conn); err != nil {
+				slog.Error("Disconnected", "remoteAddr", conn.RemoteAddr().String(), "err", err)
 			}
 		}(tcpConn)
 	}
 }
 
-func (s *Server) ServeConn(conn *net.TCPConn) error {
+// Handle a single client connection
+func (s *Server) serveConn(conn *net.TCPConn) error {
 	if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 		return err
 	}
@@ -78,23 +63,32 @@ func (s *Server) ServeConn(conn *net.TCPConn) error {
 		return err
 	}
 
-	req, err := NewRequest(conn)
+	request, err := NewRequest(conn)
 	if err != nil {
 		return err
 	}
 
-	return s.handleRequest(req, conn)
+	return s.handleRequest(request)
 }
 
-func (s *Server) handleRequest(r *Request, conn net.Conn) error {
-	switch r.cmd {
-	case 0x01:
-		return serveConnect(r, conn)
-	case 0x02:
-		return r.serveBind(s, conn)
-	case 0x03:
-		return r.serveUDPAssociate(s, conn)
+// Dispatch request to appropriate handler based on command
+func (s *Server) handleRequest(request *Request) error {
+	switch request.cmd {
+	case 0x01: // CONNECT
+		defer func() {
+			if request.cancel != nil {
+				request.cancel()
+			}
+		}()
+		return request.serveConnect()
+
+	case 0x02: // BIND
+		return request.serveBind()
+
+	case 0x03: // UDP ASSOCIATE
+		return request.serveUDPAssociate()
+
 	default:
-		return errors.New("unsupported command")
+		return CMDErr
 	}
 }
