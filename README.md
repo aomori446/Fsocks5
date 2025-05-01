@@ -3,8 +3,9 @@
 A socks5 server
 
 ## Feature
-* Support TCP and IPv4/IPv6
+* Support TCP/UDP and IPv4/IPv6
 * Support for the CONNECT command
+* Support for the ASSOCIATE command
 
 ## Useage
 ```go
@@ -17,7 +18,6 @@ func main() {
 ## TODO
 
 * Support for UDP
-* Support for the ASSOCIATE command
 * Support for the BIND command
 
 ## Reference
