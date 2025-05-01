@@ -10,14 +10,12 @@ A socks5 server
 ## Useage
 ```go
 func main() {
-	server := fsocks5.NewServer(nil)
+	server := fsocks5.NewServer()
 	log.Fatal(server.ListenAndServe(":9999"))
 }
 ```
 
 ## TODO
-
-* Support for UDP
 * Support for the BIND command
 
 ## Reference
