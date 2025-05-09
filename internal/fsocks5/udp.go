@@ -14,56 +14,56 @@ import (
 */
 
 type Datagram struct {
-	addr Address
+	addr Addr
 	data []byte
 }
 
-func ReadDatagramFrom(buffer []byte) (*Datagram, error) {
+func ResolveDatagram(buffer []byte) (*Datagram, error) {
 	// read [RSV FRAG atyp]
 	reader := bytes.NewReader(buffer)
-	read, err := readN(reader, 4)
+	read, err := ReadN(reader, 4)
 	if err != nil {
 		return nil, err
 	}
 
 	if !slices.Equal(read[:2], []byte{0x00, 0x00}) || read[2] != 0x00 {
-		return nil, FormatErr
+		return nil, ErrFormat
 	}
 
 	reader = bytes.NewReader(buffer[4:])
 	datagram := &Datagram{}
 	switch read[3] {
 	case 0x01: // IPv4
-		read, err = readN(reader, 4+2)
+		read, err = ReadN(reader, 4+2)
 		if err != nil {
 			return nil, err
 		}
-		datagram.addr = IPAddr{ip: read[:4], port: read[4:], atyp: 0x01}
+		datagram.addr = ipAddr{ip: read[:4], port: read[4:], atyp: 0x01}
 		datagram.data = buffer[4+4+2:]
 
 	case 0x03: // Domain
-		read, err = readN(reader, 1)
+		read, err = ReadN(reader, 1)
 		if err != nil {
 			return nil, err
 		}
 		addrLen := read[0]
-		read, err = readN(reader, addrLen+2)
+		read, err = ReadN(reader, addrLen+2)
 		if err != nil {
 			return nil, err
 		}
-		datagram.addr = NewDomainNameAddr(read)
+		datagram.addr = resolveDomainAddr(read)
 		datagram.data = buffer[4+1+addrLen+2:]
 
 	case 0x04: // IPv6
-		read, err = readN(reader, 16+2)
+		read, err = ReadN(reader, 16+2)
 		if err != nil {
 			return nil, err
 		}
-		datagram.addr = IPAddr{ip: read[:16], port: read[16:], atyp: 0x04}
+		datagram.addr = ipAddr{ip: read[:16], port: read[16:], atyp: 0x04}
 		datagram.data = buffer[4+16+2:]
 
 	default:
-		return nil, AddrErr
+		return nil, ErrAddr
 	}
 	return datagram, nil
 }
@@ -73,7 +73,7 @@ func (d *Datagram) Bytes() []byte {
 		0x00,           // RSV
 		0x00,           // RSV
 		0x00,           // FRAG
-		d.addr.Atyp()}, // ATYP
+		d.addr.ATYP()}, // ATYP
 		d.addr.Bytes()...), // DST.ADDR + DST.PORT
 		d.data...) // DATA
 }

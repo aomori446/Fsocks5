@@ -3,8 +3,8 @@ package fsocks5
 import "errors"
 
 var (
-	FormatErr  = errors.New("format is wrong")
-	VersionErr = errors.New("unsupported SOCKS version")
-	AddrErr    = errors.New("unsupported addr type")
-	CMDErr     = errors.New("unsupported command")
+	ErrFormat  = errors.New("unsupported format")
+	ErrVersion = errors.New("unsupported SOCKS version")
+	ErrAddr    = errors.New("unsupported addr type")
+	ErrCMD     = errors.New("unsupported command")
 )

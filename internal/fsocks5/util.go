@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func readN(r io.Reader, n byte) ([]byte, error) {
+func ReadN(r io.Reader, n byte) ([]byte, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("invalid read length: %d", n)
 	}
@@ -22,7 +22,7 @@ func readN(r io.Reader, n byte) ([]byte, error) {
 	return buf, nil
 }
 
-func parseHostPort(hostPort string) (IP []byte, Port []byte, ATYP byte, err error) {
+func Parse(hostPort string) (ip []byte, port []byte, atyp byte, err error) {
 	host, p, err := net.SplitHostPort(hostPort)
 	if err != nil {
 		return nil, nil, 0, err
@@ -30,27 +30,27 @@ func parseHostPort(hostPort string) (IP []byte, Port []byte, ATYP byte, err erro
 
 	parsedIP := net.ParseIP(host)
 	if parsedIP == nil {
-		return nil, nil, 0, errors.New("invalid IP")
+		return nil, nil, 0, errors.New("invalid ip")
 	}
 	if ip4 := parsedIP.To4(); ip4 != nil {
-		IP = ip4
-		ATYP = 0x01
+		ip = ip4
+		atyp = 0x01
 	} else {
-		IP = parsedIP.To16()
-		ATYP = 0x04
+		ip = parsedIP.To16()
+		atyp = 0x04
 	}
 
 	pp, err := strconv.Atoi(p)
 	if err != nil {
 		return nil, nil, 0, err
 	}
-	Port = make([]byte, 2)
-	binary.BigEndian.PutUint16(Port, uint16(pp))
+	port = make([]byte, 2)
+	binary.BigEndian.PutUint16(port, uint16(pp))
 
 	return
 }
 
-func reply(w io.Writer, message []byte) error {
+func ReplyTo(w io.Writer, message []byte) error {
 	_, err := w.Write(message)
 	if err != nil {
 		return fmt.Errorf("failed to write response: %w", err)

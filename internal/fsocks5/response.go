@@ -1,42 +1,26 @@
 package fsocks5
 
-import "net"
-
 const (
-	succeeded                     byte = 0x00
-	generalSOCKSServerFailure          = 0x01
-	connectionNotAllowedByRuleset      = 0x02
-	networkUnreachable                 = 0x03
-	hostUnreachable                    = 0x04
-	connectionRefused                  = 0x05
-	TTLExpired                         = 0x06
-	commandNotSupported                = 0x07
-	addressTypeNotSupported            = 0x08
+	succeeded                     = byte(0x00)
+	generalSOCKSServerFailure     = byte(0x01)
+	connectionNotAllowedByRuleset = byte(0x02)
+	networkUnreachable            = byte(0x03)
+	hostUnreachable               = byte(0x04)
+	connectionRefused             = byte(0x05)
+	ttlExpired                    = byte(0x06)
+	commandNotSupported           = byte(0x07)
+	addressTypeNotSupported       = byte(0x08)
 )
 
-var failedResponseWithReason = func(reason byte) *Response {
-	return &Response{
-		rep: reason,
-		address: IPAddr{
-			ip:   net.IPv4zero,
-			port: []byte{0x00, 0x00},
-		},
-	}
-}
-
-var SucceededResponse = func(hostPort string) *Response {
-	ipAddr, _ := NewIPAddr(hostPort)
-	return &Response{
-		rep:     succeeded,
-		address: ipAddr,
-	}
-}
-
 type Response struct {
-	rep     byte
-	address Address
+	rep  byte
+	addr Addr
 }
 
-func (r *Response) bytes() []byte {
-	return append([]byte{0x05, r.rep, 0x00, r.address.Atyp()}, r.address.Bytes()...)
+func NewResponse(rep byte, addr Addr) Response {
+	return Response{rep: rep, addr: addr}
+}
+
+func (r Response) Bytes() []byte {
+	return append([]byte{0x05, r.rep, 0x00, r.addr.ATYP()}, r.addr.Bytes()...)
 }
